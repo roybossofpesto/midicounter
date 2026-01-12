@@ -1,0 +1,125 @@
+<!doctype html>
+<html>
+<head>
+  <style>
+    body {
+      background: #0b0b0b;
+      color: #e0e0e0;
+      font-family: monospace;
+      margin: 10px;
+    }
+
+    #top {
+      font-size: 22px;
+      margin-bottom: 10px;
+    }
+
+    #stats {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    #roll {
+      display: flex;
+      flex-direction: column-reverse;
+      font-size: 11px;
+      line-height: 1.25;
+      white-space: pre;
+    }
+
+    select {
+      background: #111;
+      color: #eee;
+      border: 1px solid #333;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+<select id="midiSelect"></select>
+
+<div id="top">
+  TOTAL NOTES: <span id="total">0</span>
+  <span id="stats"> | avg: <span id="nps">0.00</span> notes/sec</span>
+</div>
+
+<pre id="roll"></pre>
+
+<script>
+const NOTE_START = 36; // C2
+const NOTE_END   = 84; // C6
+
+let counters = {};
+let total = 0;
+let lastNote = null;
+let startTime = performance.now();
+let currentInput = null;
+
+for (let n = NOTE_START; n <= NOTE_END; n++) counters[n] = 0;
+
+function noteName(n) {
+  const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  return names[n % 12] + Math.floor(n / 12 - 1);
+}
+
+function render() {
+  let out = '';
+  for (let n = NOTE_START; n <= NOTE_END; n++) {
+    const mark = (n === lastNote) ? '>> ' : '   ';
+    out += `${mark}${noteName(n).padEnd(4)} : ${counters[n]}\n`;
+  }
+  document.getElementById('roll').textContent = out;
+
+  document.getElementById('total').textContent = total;
+
+  const elapsed = (performance.now() - startTime) / 1000;
+  const nps = elapsed > 0 ? (total / elapsed).toFixed(2) : '0.00';
+  document.getElementById('nps').textContent = nps;
+}
+
+function resetAll() {
+  for (let n in counters) counters[n] = 0;
+  total = 0;
+  lastNote = null;
+  startTime = performance.now();
+  render();
+}
+
+navigator.requestMIDIAccess().then(midi => {
+  const select = document.getElementById("midiSelect");
+
+  for (let input of midi.inputs.values()) {
+    const opt = document.createElement("option");
+    opt.value = input.id;
+    opt.text = input.name;
+    select.appendChild(opt);
+  }
+
+  select.onchange = () => {
+    if (currentInput) currentInput.onmidimessage = null;
+    currentInput = midi.inputs.get(select.value);
+    currentInput.onmidimessage = msg => {
+      const [status, note, vel] = msg.data;
+      if ((status & 0xf0) === 0x90 && vel > 0) {
+        if (note >= NOTE_START && note <= NOTE_END) {
+          counters[note]++;
+          total++;
+          lastNote = note;
+          render();
+        }
+      }
+    };
+  };
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'r') resetAll();
+});
+
+render();
+</script>
+
+</body>
+</html>

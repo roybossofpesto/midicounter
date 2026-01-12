@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+<style>
+body {
+  background:#0b0b0b;
+  color:#e0e0e0;
+  font-family: monospace;
+  margin:10px;
+}
+#top {
+  font-size:24px;
+  margin-bottom:4px;
+}
+#stats {
+  font-size:14px;
+  opacity:0.85;
+}
+#controls {
+  font-size:12px;
+  margin-bottom:6px;
+}
+#grid {
+  display:grid;
+  grid-template-columns: repeat(5, auto);
+  gap:12px;
+  font-size:14px;
+  line-height:1.35;
+}
+.octave {
+  white-space:pre;
+}
+select {
+  background:#111;
+  color:#eee;
+  border:1px solid #333;
+  margin-bottom:6px;
+  font-size:13px;
+}
+label {
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<select id="midiSelect"></select>
+
+<div id="controls">
+  <label>
+    <input type="checkbox" id="accToggle" checked>
+    show accidentals
+  </label>
+</div>
+
+<div id="top">
+  TOTAL: <span id="total">0</span>
+  <span id="stats">
+    | recent: <span id="nps">0.00</span> n/s
+    | avg vel: <span id="avgVel">0</span>
+  </span>
+</div>
+
+<div id="grid"></div>
+
+<script>
+/* ---------------- CONFIG ---------------- */
+const OCTAVES = [2,3,4,5,6];
+const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const WINDOW_SEC = 5;
+const VEL_WINDOW = 16;
+const MAX_INTERVAL_MS = 1000;
+
+/* ---------------- STATE ---------------- */
+let counters = {};
+let lastTimes = {};
+let prevTimes = {};
+let intervals = {};
+
+let total = 0;
+let noteTimes = [];
+let velocities = [];
+let currentInput = null;
+let showAccidentals = true;
+
+/* ---------------- INIT ---------------- */
+for (let o of OCTAVES) {
+  for (let i = 0; i < 12; i++) {
+    const midi = (o + 1) * 12 + i;
+    counters[midi] = 0;
+    lastTimes[midi] = null;
+    prevTimes[midi] = null;
+    intervals[midi] = null;
+  }
+}
+
+function isAccidental(i) {
+  return NOTES[i].includes('#');
+}
+
+/* ---------------- RENDER ---------------- */
+function render() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+
+  for (let o of OCTAVES) {
+    let col = '';
+    for (let i = 11; i >= 0; i--) {
+      if (o === 6 && i !== 0) continue;
+      if (!showAccidentals && isAccidental(i)) continue;
+
+      const midi = (o + 1) * 12 + i;
+      let dt = '';
+
+      if (intervals[midi] !== null && intervals[midi] < MAX_INTERVAL_MS) {
+        dt = ` ${Math.floor(intervals[midi])}ms`;
+      }
+
+      col += `${NOTES[i]}${o} : ${counters[midi]}${dt}\n`;
+    }
+    const div = document.createElement('div');
+    div.className = 'octave';
+    div.textContent = col;
+    grid.appendChild(div);
+  }
+
+  document.getElementById('total').textContent = total;
+
+  const now = performance.now();
+  noteTimes = noteTimes.filter(t => now - t < WINDOW_SEC * 1000);
+  document.getElementById('nps').textContent =
+    (noteTimes.length / WINDOW_SEC).toFixed(2);
+
+  const avgVel = velocities.length
+    ? Math.round(velocities.reduce((a,b)=>a+b,0) / velocities.length)
+    : 0;
+  document.getElementById('avgVel').textContent = avgVel;
+}
+
+/* ---------------- MIDI ---------------- */
+navigator.requestMIDIAccess().then(midi => {
+  const select = document.getElementById('midiSelect');
+
+  for (let input of midi.inputs.values()) {
+    const opt = document.createElement('option');
+    opt.value = input.id;
+    opt.text = input.name;
+    select.appendChild(opt);
+  }
+
+  select.onchange = () => {
+    if (currentInput) currentInput.onmidimessage = null;
+    currentInput = midi.inputs.get(select.value);
+
+    currentInput.onmidimessage = msg => {
+      const [status, note, vel] = msg.data;
+      if ((status & 0xf0) === 0x90 && vel > 0 && counters[note] !== undefined) {
+        const now = performance.now();
+
+        counters[note]++;
+        total++;
+        noteTimes.push(now);
+
+        velocities.push(vel);
+        if (velocities.length > VEL_WINDOW) velocities.shift();
+
+        if (lastTimes[note] !== null) {
+          prevTimes[note] = lastTimes[note];
+          intervals[note] = now - lastTimes[note];
+        }
+
+        lastTimes[note] = now;
+        render();
+      }
+    };
+  };
+});
+
+/* ---------------- UI ---------------- */
+document.getElementById('accToggle').onchange = e => {
+  showAccidentals = e.target.checked;
+  render();
+};
+
+document.addEventListener('keydown', e => {
+  if (e.key.toLowerCase() === 'r') {
+    for (let k in counters) counters[k] = 0;
+    for (let k in lastTimes) lastTimes[k] = null;
+    for (let k in prevTimes) prevTimes[k] = null;
+    for (let k in intervals) intervals[k] = null;
+    total = 0;
+    noteTimes = [];
+    velocities = [];
+    render();
+  }
+});
+
+render();
+</script>
+</body>
+</html>
