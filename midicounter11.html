@@ -100,6 +100,30 @@
   </div>
 
   <script>
+//     /**
+// * Calculates the Poisson probability mass function.
+// * @param {number} k - The number of occurrences (must be an integer).
+// * @param {number} lambda - The average rate of occurrence.
+// * @returns {number} The probability of k occurrences.
+// */
+//     function poissonPMF(k, lambda) {
+//       if (k < 0) return 0;
+
+//       // Helper function for factorial
+//       const factorial = (n) => {
+//         if (n === 0 || n === 1) return 1;
+//         let res = 1;
+//         for (let i = 2; i <= n; i++) res *= i;
+//         return res;
+//       };
+
+//       const numerator = Math.pow(lambda, k) * Math.exp(-lambda);
+//       const denominator = factorial(k);
+
+//       return numerator / denominator;
+//     }
+
+
     /* ---------------- CONFIG ---------------- */
     const OCTAVES = [2, 3, 4, 5, 6];
     const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -207,8 +231,6 @@
         ctx.stroke();
       }
 
-
-
       let count_left = 0;
       let count_right = 0;
       let bary_left = 0;
@@ -232,10 +254,22 @@
       if (count_right > 0)
         bary_right /= count_right;
 
+      // { // left poisson distribution
+      //   ctx.strokeStyle = '#ff0';
+      //   ctx.beginPath();
+      //   ctx.moveTo(0, c.height);
+      //   for (let i = 0; i <= HIST_BINS; i++) {
+      //     const xx = i / HIST_BINS;
+      //     const yy = poissonPMF(i, bary_left);
+      //     // console.log("!!!!", xx, yy);
+      //     ctx.lineTo(xx * c.width, yy * c.height);
+      //   }
+      //   ctx.stroke();
+      // }
+
       { // counts
         const l = document.getElementById('count_left');
         l.innerText = count_left;
-
         const l_ = document.getElementById('count_right');
         l_.innerText = count_right;
       }
@@ -243,7 +277,6 @@
       { // baycenters
         const l = document.getElementById('bary_left');
         l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
-
         const l_ = document.getElementById('bary_right');
         l_.innerText = (bary_right * HIST_MAX_MS).toFixed(1);
       }
@@ -274,7 +307,7 @@
         let xx = 0.0;
         while (xx <= c.width) {
           ctx.beginPath();
-          ctx.moveTo(xx, 0.9 * c.height);
+          ctx.moveTo(xx, 0.95 * c.height);
           ctx.lineTo(xx, c.height);
           ctx.stroke();
           xx += 50.0;
