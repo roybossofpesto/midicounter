@@ -198,7 +198,7 @@
       }
 
       if (bpm > 0) {
-        ctx.strokeStyle = '#0f0';
+        ctx.strokeStyle = '#000';
         ctx.beginPath();
         ctx.moveTo(tick * c.width, 0.0);
         ctx.lineTo(tick * c.width, c.height);
@@ -209,15 +209,25 @@
 
       let count_left = 0;
       let count_right = 0;
+      let bary_left = 0;
+      let bary_right = 0;
       for (let i = 0; i < HIST_BINS; i++) {
+        const p = (i + .5) / HIST_BINS;
         const thresh = tick / 2 * HIST_BINS;
-        const h = bins[i];
+        const h = bins[i] * 1;
+        const h_ = bins[i] * p;
+        const h__ = bins[i] * p * p;
         if (i > thresh) {
           count_right += h;
+          bary_right += h_;
         } else {
           count_left += h;
+          bary_left += h_;
         }
       }
+      bary_left /= count_left;
+      bary_right /= count_right;
+
 
       const l = document.getElementById('count_left');
       l.innerText = count_left;
@@ -225,22 +235,29 @@
       const l_ = document.getElementById('count_right');
       l_.innerText = count_right;
 
-      // console.log("djfksdjfjk", count_left, count_right, count_left + count_right);
-
- {
-        ctx.strokeStyle = '#ff0';
+      { // mean blue
+        ctx.strokeStyle = '#0ff';
         ctx.beginPath();
-        ctx.moveTo(tick * c.width, 0.0);
-        ctx.lineTo(tick * c.width, c.height);
+        ctx.moveTo(bary_left * c.width, 0.0);
+        ctx.lineTo(bary_left * c.width, c.height);
         ctx.stroke();
       }
 
+      { // mean rose
+        ctx.strokeStyle = '#ff0';
+        ctx.beginPath();
+        ctx.moveTo(bary_right * c.width, 0.0);
+        ctx.lineTo(bary_right * c.width, c.height);
+        ctx.stroke();
+      }
 
-      ctx.strokeStyle = '#f00';
-      ctx.beginPath();
-      ctx.moveTo(0, c.height - 1.0);
-      ctx.lineTo(c.width, c.height - 1.0);
-      ctx.stroke();
+      { // bottom axis
+        ctx.strokeStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(0, c.height - 1.0);
+        ctx.lineTo(c.width, c.height - 1.0);
+        ctx.stroke();
+      }
     }
 
     /* ---------------- RENDER ---------------- */
