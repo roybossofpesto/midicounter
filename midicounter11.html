@@ -100,28 +100,6 @@
   </div>
 
   <script>
-//     /**
-// * Calculates the Poisson probability mass function.
-// * @param {number} k - The number of occurrences (must be an integer).
-// * @param {number} lambda - The average rate of occurrence.
-// * @returns {number} The probability of k occurrences.
-// */
-//     function poissonPMF(k, lambda) {
-//       if (k < 0) return 0;
-
-//       // Helper function for factorial
-//       const factorial = (n) => {
-//         if (n === 0 || n === 1) return 1;
-//         let res = 1;
-//         for (let i = 2; i <= n; i++) res *= i;
-//         return res;
-//       };
-
-//       const numerator = Math.pow(lambda, k) * Math.exp(-lambda);
-//       const denominator = factorial(k);
-
-//       return numerator / denominator;
-//     }
 
 
     /* ---------------- CONFIG ---------------- */
@@ -151,6 +129,7 @@
     let bpm = 0;
 
     let deltas = [];
+    let lastVelocities = [];
 
     let currentInput = null;
     let showAccidentals = true;
@@ -235,6 +214,7 @@
       let count_right = 0;
       let bary_left = 0;
       let bary_right = 0;
+      let vari_right = 0;
       for (let i = 0; i < HIST_BINS; i++) {
         const p = (i + .5) / HIST_BINS;
         const thresh = tick / 2 * HIST_BINS;
@@ -244,6 +224,7 @@
         if (i > thresh) {
           count_right += h;
           bary_right += h_;
+          vari_right += h__;
         } else {
           count_left += h;
           bary_left += h_;
@@ -251,8 +232,14 @@
       }
       if (count_left > 0)
         bary_left /= count_left;
-      if (count_right > 0)
+      if (count_right > 0) {
         bary_right /= count_right;
+        vari_right /= count_right;
+        vari_right -= bary_right * bary_right;
+        vari_right = Math.sqrt(vari_right);
+        // console.log(":::::", vari_right);
+        // vari_right /= count_right;
+      }
 
       // { // left poisson distribution
       //   ctx.strokeStyle = '#ff0';
@@ -303,14 +290,19 @@
         ctx.moveTo(0, c.height);
         ctx.lineTo(c.width, c.height);
         ctx.stroke();
-        // scale
-        let xx = 0.0;
-        while (xx <= c.width) {
+        for (let i = 0; i < HIST_MAX_MS; i += 50) {
+          const p = i / HIST_MAX_MS;
           ctx.beginPath();
-          ctx.moveTo(xx, 0.95 * c.height);
-          ctx.lineTo(xx, c.height);
+          ctx.moveTo(p * c.width, 0.90 * c.height);
+          ctx.lineTo(p * c.width, 0.95 * c.height);
           ctx.stroke();
-          xx += 50.0;
+        }
+        for (let i = 0; i < HIST_MAX_MS; i += 10) {
+          const p = i / HIST_MAX_MS;
+          ctx.beginPath();
+          ctx.moveTo(p * c.width, 0.95 * c.height);
+          ctx.lineTo(p * c.width, c.height);
+          ctx.stroke();
         }
       }
     }
@@ -377,15 +369,15 @@
         currentInput = midi.inputs.get(select.value);
 
         currentInput.onmidimessage = msg => {
-          const [status, note, vel] = msg.data;
-          if ((status & 0xf0) === 0x90 && vel > 0 && counters[note] !== undefined) {
+          const [status, note, velocity] = msg.data;
+          if ((status & 0xf0) === 0x90 && velocity > 0 && counters[note] !== undefined) {
             const now = performance.now();
 
             counters[note]++;
             total++;
             noteTimes.push(now);
 
-            velocities.push(vel);
+            velocities.push(velocity);
             if (velocities.length > VEL_WINDOW) velocities.shift();
 
             if (lastTimes[note] !== null) {
@@ -406,9 +398,12 @@
             if (barTimes.length >= 2) {
               const d = barTimes[barTimes.length - 1] -
                 barTimes[barTimes.length - 2];
+              const v = velocity;
               if (d <= HIST_MAX_MS) {
                 deltas.push(d);
                 if (deltas.length > 72 * 2) deltas.shift();
+                lastVelocities.push(v);
+                if (lastVelocities.length > 72 * 2) lastVelocities.shift();
               }
             }
 
@@ -434,6 +429,7 @@
         velocities = [];
         barTimes = [];
         deltas = [];
+        lastVelocities = [];
         bpm = 0;
         render();
       }
