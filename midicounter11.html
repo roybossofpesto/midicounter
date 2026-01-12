@@ -92,6 +92,10 @@
   </div>
 
   <canvas id="hist" width="600" height="120"></canvas>
+  <div>
+    blue <span id="count_left"></span>
+    rose <span id="count_right"></span>
+  </div>
 
   <script>
     /* ---------------- CONFIG ---------------- */
@@ -176,11 +180,10 @@
 
       const max = Math.max(...bins, 1);
       const w = c.width / HIST_BINS;
+      const tick = 1 / 3 * 60000 / bpm / HIST_MAX_MS;
 
       for (let i = 0; i < HIST_BINS; i++) {
         const h = bins[i] / max * c.height;
-
-        const tick = 1 / 3 * 60000 / bpm / HIST_MAX_MS;
         const thresh = tick / 2 * HIST_BINS;
 
         ctx.fillStyle = '#66ccff';
@@ -197,7 +200,36 @@
       if (bpm > 0) {
         ctx.strokeStyle = '#0f0';
         ctx.beginPath();
-        const tick = 1 / 3 * 60000 / bpm / HIST_MAX_MS;
+        ctx.moveTo(tick * c.width, 0.0);
+        ctx.lineTo(tick * c.width, c.height);
+        ctx.stroke();
+      }
+
+
+
+      let count_left = 0;
+      let count_right = 0;
+      for (let i = 0; i < HIST_BINS; i++) {
+        const thresh = tick / 2 * HIST_BINS;
+        const h = bins[i];
+        if (i > thresh) {
+          count_right += h;
+        } else {
+          count_left += h;
+        }
+      }
+
+      const l = document.getElementById('count_left');
+      l.innerText = count_left;
+
+      const l_ = document.getElementById('count_right');
+      l_.innerText = count_right;
+
+      // console.log("djfksdjfjk", count_left, count_right, count_left + count_right);
+
+ {
+        ctx.strokeStyle = '#ff0';
+        ctx.beginPath();
         ctx.moveTo(tick * c.width, 0.0);
         ctx.lineTo(tick * c.width, c.height);
         ctx.stroke();
