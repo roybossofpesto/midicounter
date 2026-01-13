@@ -101,6 +101,8 @@
     rose
     # <span id="count_right"></span>
     bary <span id="bary_right"></span>ms
+  </div>
+  <div>
     tempo <span id="tempo_right"></span>bpm
   </div>
 
@@ -134,7 +136,7 @@
     let bpm = 0;
 
     let deltas = [];
-    let lastVelocities = [];
+    // let lastVelocities = [];
 
     let currentInput = null;
     let showAccidentals = true;
@@ -266,7 +268,8 @@
         // const l = document.getElementById('bary_left');
         // l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
         const l_ = document.getElementById('tempo_right');
-        l_.innerText = tempo_right.toFixed(1);
+        l_.textContent =
+          bary_right ? tempo_right.toFixed(1) : '— ';
       }
 
       { // mean blue
@@ -402,9 +405,9 @@
               const v = velocity;
               if (d <= HIST_MAX_MS) {
                 deltas.push(d);
-                if (deltas.length > 72 * 2) deltas.shift();
-                lastVelocities.push(v);
-                if (lastVelocities.length > 72 * 2) lastVelocities.shift();
+                if (deltas.length > 72) deltas.shift();
+                // lastVelocities.push(v);
+                // if (lastVelocities.length > 72) lastVelocities.shift();
               }
             }
 
@@ -430,7 +433,7 @@
         velocities = [];
         barTimes = [];
         deltas = [];
-        lastVelocities = [];
+        // lastVelocities = [];
         bpm = 0;
         render();
       }
