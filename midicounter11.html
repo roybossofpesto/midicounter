@@ -93,10 +93,15 @@
 
   <canvas id="hist" width="600" height="120"></canvas>
   <div>
-    blue # <span id="count_left"></span> bary <span id="bary_left"></span>ms
+    blue
+    # <span id="count_left"></span>
+    bary <span id="bary_left"></span>ms
   </div>
   <div>
-    rose # <span id="count_right"></span> bary <span id="bary_right"></span>ms
+    rose
+    # <span id="count_right"></span>
+    bary <span id="bary_right"></span>ms
+    tempo <span id="tempo_right"></span>bpm
   </div>
 
   <script>
@@ -237,22 +242,10 @@
         vari_right /= count_right;
         vari_right -= bary_right * bary_right;
         vari_right = Math.sqrt(vari_right);
-        // console.log(":::::", vari_right);
+        console.log(":::::", vari_right);
         // vari_right /= count_right;
       }
 
-      // { // left poisson distribution
-      //   ctx.strokeStyle = '#ff0';
-      //   ctx.beginPath();
-      //   ctx.moveTo(0, c.height);
-      //   for (let i = 0; i <= HIST_BINS; i++) {
-      //     const xx = i / HIST_BINS;
-      //     const yy = poissonPMF(i, bary_left);
-      //     // console.log("!!!!", xx, yy);
-      //     ctx.lineTo(xx * c.width, yy * c.height);
-      //   }
-      //   ctx.stroke();
-      // }
 
       { // counts
         const l = document.getElementById('count_left');
@@ -266,6 +259,14 @@
         l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
         const l_ = document.getElementById('bary_right');
         l_.innerText = (bary_right * HIST_MAX_MS).toFixed(1);
+      }
+
+      { // tempos
+        const tempo_right = 14 / 15 * 20000 / (bary_right * HIST_MAX_MS);
+        // const l = document.getElementById('bary_left');
+        // l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
+        const l_ = document.getElementById('tempo_right');
+        l_.innerText = tempo_right.toFixed(1);
       }
 
       { // mean blue
