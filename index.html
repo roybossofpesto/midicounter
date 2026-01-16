@@ -76,6 +76,10 @@
     </label>
   </div>
 
+  <div id="leaderboard">
+    Top notes: <span id="topNotes"></span>
+  </div>
+
   <div id="top">
     TOTAL: <span id="total">0</span>
     <span id="stats">
@@ -87,11 +91,9 @@
 
   <div id="grid"></div>
 
-  <div id="leaderboard">
-    Top notes: <span id="topNotes"></span>
-  </div>
-
   <canvas id="hist" width="1400" height="120"></canvas>
+  <canvas id="target" width="1400" height="120" style="border:1px solid #222; margin-top:5px;"></canvas>
+
   <div>
     blue
     # <span id="count_left"></span>
@@ -104,6 +106,12 @@
   </div>
   <div>
     tempo <span id="tempo_right"></span>bpm
+  </div>
+  <div>
+    σ (rose) <span id="std_right"></span>ms
+  </div>
+  <div>
+    σ (blue) <span id="std_left"></span>ms
   </div>
 
   <script>
@@ -121,7 +129,7 @@
     const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
     const HIST_MAX_MS = 500;
-    const HIST_BINS = 100;
+    const HIST_BINS = 150;
 
     /* ---------------- STATE ---------------- */
     let counters = {};
@@ -140,6 +148,11 @@
 
     let currentInput = null;
     let showAccidentals = true;
+
+    let count_left = 0, count_right = 0;
+    let bary_left = 0, bary_right = 0;
+    let std_left_ms = 0, std_right_ms = 0;
+
 
     /* ---------------- INIT ---------------- */
     for (let o of OCTAVES) {
@@ -192,7 +205,9 @@
 
       const max = Math.max(...bins, 1);
       const w = c.width / HIST_BINS;
-      const tick = 1 / 3 * 60000 / bpm / HIST_MAX_MS;
+    //  const tick = 1 / 3 * 60000 / bpm / HIST_MAX_MS;
+    const tick = bpm ? (1 / 3 * 60000 / bpm / HIST_MAX_MS) : 0;
+
 
       for (let i = 0; i < HIST_BINS; i++) {
         const h = bins[i] / max * c.height;
@@ -217,11 +232,12 @@
         ctx.stroke();
       }
 
-      let count_left = 0;
-      let count_right = 0;
-      let bary_left = 0;
-      let bary_right = 0;
-      let vari_right = 0;
+      count_left = 0;
+      count_right = 0;
+      bary_left = 0;
+      bary_right = 0;
+      vari_left = 0;
+      vari_right = 0;
       for (let i = 0; i < HIST_BINS; i++) {
         const p = (i + .5) / HIST_BINS;
         const thresh = tick / 2 * HIST_BINS;
@@ -235,17 +251,41 @@
         } else {
           count_left += h;
           bary_left += h_;
+          vari_left += h__
         }
       }
       if (count_left > 0)
         bary_left /= count_left;
+        vari_left /= count_left;
+        vari_left -= bary_left * bary_left;
+        vari_left = Math.sqrt(vari_left);
       if (count_right > 0) {
         bary_right /= count_right;
         vari_right /= count_right;
         vari_right -= bary_right * bary_right;
         vari_right = Math.sqrt(vari_right);
-        console.log(":::::", vari_right);
+        
+        //console.log(":::::", vari_right);
         // vari_right /= count_right;
+      }
+
+      std_left_ms = 0;
+      std_right_ms = 0;
+        if (count_left > 0) {
+        std_left_ms = vari_left * HIST_MAX_MS;
+      }
+        if (count_right > 0) {
+        std_right_ms = vari_right * HIST_MAX_MS;
+      }
+
+      { // std dev blue
+        const stdEl = document.getElementById('std_left');
+        stdEl.textContent = count_left ? std_left_ms.toFixed(1) : '—';
+      }
+
+      { // std dev rose
+        const stdEl = document.getElementById('std_right');
+        stdEl.textContent = count_right ? std_right_ms.toFixed(1) : '—';
       }
 
 
@@ -311,6 +351,59 @@
       }
     }
 
+    /* render target */
+    function renderTarget() {
+      const c = document.getElementById('target');
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+
+      // Nothing to draw yet
+      if (!count_left && !count_right) return;
+
+      // Use a single scale so ellipse isn't distorted
+      const scale = c.height / HIST_MAX_MS; // 1 ms = pixels vertically
+      const factor = 10; // adjust for visual size
+
+      // Center x on bary_right/2
+      const cx = (bary_right * HIST_MAX_MS / 2) * (c.width / HIST_MAX_MS);
+      const cy = c.height / 2;
+
+      // σ to pixels
+      const rx = std_left_ms * scale * factor;  // horizontal = blue σ
+      const ry = std_right_ms * scale * factor; // vertical = rose σ
+
+      // Draw ellipse
+      ctx.strokeStyle = '#ff0000';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // Draw crosshairs
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 0.1;
+      // horizontal
+      ctx.beginPath();
+      ctx.moveTo(cx - rx - 10, cy);
+      ctx.lineTo(cx + rx + 10, cy);
+      ctx.stroke();
+      // vertical
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - ry - 10);
+      ctx.lineTo(cx, cy + ry + 10);
+      ctx.stroke();
+      // area txt
+      const areaMs2 = (std_left_ms / 2)* (std_right_ms /2) * Math.PI;
+      ctx.fillStyle = '#fff';
+      ctx.font = '20px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(areaMs2.toFixed(0), cx, cy);
+    }
+
+
+
+
     /* ---------------- RENDER ---------------- */
     function render() {
       const grid = document.getElementById('grid');
@@ -355,6 +448,8 @@
 
       renderLeaderboard();
       renderHistogram();
+      renderTarget();
+      
     }
 
     /* ---------------- MIDI ---------------- */
