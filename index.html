@@ -280,12 +280,12 @@
 
       { // std dev blue
         const stdEl = document.getElementById('std_left');
-        stdEl.textContent = count_left ? std_left_ms.toFixed(1) : '—';
+        stdEl.textContent = count_left ? std_left_ms.toFixed(0) : '—';
       }
 
       { // std dev rose
         const stdEl = document.getElementById('std_right');
-        stdEl.textContent = count_right ? std_right_ms.toFixed(1) : '—';
+        stdEl.textContent = count_right ? std_right_ms.toFixed(0) : '—';
       }
 
 
@@ -298,18 +298,18 @@
 
       { // baycenters
         const l = document.getElementById('bary_left');
-        l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
+        l.innerText = (bary_left * HIST_MAX_MS).toFixed(0);
         const l_ = document.getElementById('bary_right');
-        l_.innerText = (bary_right * HIST_MAX_MS).toFixed(1);
+        l_.innerText = (bary_right * HIST_MAX_MS).toFixed(0);
       }
 
       { // tempos
-        const tempo_right = 14 / 15 * 20000 / (bary_right * HIST_MAX_MS);
+        const tempo_right = 0.92 * 20000 / (bary_right * HIST_MAX_MS) + 4; //14 / 15
         // const l = document.getElementById('bary_left');
         // l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
         const l_ = document.getElementById('tempo_right');
         l_.textContent =
-          bary_right ? tempo_right.toFixed(1) : '— ';
+          bary_right ? tempo_right.toFixed(0) : '— ';
       }
 
       { // mean blue
@@ -369,8 +369,8 @@
       const cy = c.height / 2;
 
       // σ to pixels
-      const rx = std_left_ms * scale * factor;  // horizontal = blue σ
-      const ry = std_right_ms * scale * factor; // vertical = rose σ
+      const ry = std_left_ms * scale * factor;  // horizontal = rose σ
+      const rx = std_right_ms * scale * factor; // vertical = blue σ
 
       // Draw ellipse
       ctx.strokeStyle = '#ff0000';
@@ -393,12 +393,12 @@
       ctx.lineTo(cx, cy + ry + 10);
       ctx.stroke();
       // area txt
-      const areaMs2 = (std_left_ms / 2)* (std_right_ms /2) * Math.PI;
+      const areaMs2 = std_left_ms * std_right_ms * Math.PI;
       ctx.fillStyle = '#fff';
       ctx.font = '20px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(areaMs2.toFixed(0), cx, cy);
+      ctx.fillText(Math.sqrt(areaMs2).toFixed(0), cx, cy);
     }
 
 
@@ -436,7 +436,7 @@
       const now = performance.now();
       noteTimes = noteTimes.filter(t => now - t < WINDOW_SEC * 1000);
       document.getElementById('nps').textContent =
-        (noteTimes.length / WINDOW_SEC).toFixed(2);
+        (noteTimes.length / WINDOW_SEC).toFixed(0);
 
       const avgVel = velocities.length
         ? Math.round(velocities.reduce((a, b) => a + b, 0) / velocities.length)
@@ -444,7 +444,7 @@
       document.getElementById('avgVel').textContent = avgVel;
 
       document.getElementById('bpm').textContent =
-        bpm ? bpm.toFixed(1) : '—';
+        bpm ? bpm.toFixed(0) : '—';
 
       renderLeaderboard();
       renderHistogram();
