@@ -131,6 +131,8 @@
     const HIST_MAX_MS = 500;
     const HIST_BINS = 150;
 
+    const NOTE_BUFFER = 72;
+
     /* ---------------- STATE ---------------- */
     let counters = {};
     let lastTimes = {};
@@ -264,9 +266,6 @@
         vari_right /= count_right;
         vari_right -= bary_right * bary_right;
         vari_right = Math.sqrt(vari_right);
-        
-        //console.log(":::::", vari_right);
-        // vari_right /= count_right;
       }
 
       std_left_ms = 0;
@@ -304,9 +303,8 @@
       }
 
       { // tempos
-        const tempo_right = 0.92 * 20000 / (bary_right * HIST_MAX_MS) + 4; //14 / 15
-        // const l = document.getElementById('bary_left');
-        // l.innerText = (bary_left * HIST_MAX_MS).toFixed(1);
+        //const tempo_right = 0.92 * 20000 / (bary_right * HIST_MAX_MS) + 4; //14 / 15
+        const tempo_right = 2 * 60 / (2 * bary_left + 3 * bary_right);
         const l_ = document.getElementById('tempo_right');
         l_.textContent =
           bary_right ? tempo_right.toFixed(0) : '— ';
@@ -393,12 +391,12 @@
       ctx.lineTo(cx, cy + ry + 10);
       ctx.stroke();
       // area txt
-      const areaMs2 = std_left_ms * std_right_ms * Math.PI;
+      const precision = std_left_ms + std_right_ms;
       ctx.fillStyle = '#fff';
-      ctx.font = '20px monospace';
+      ctx.font = '30px monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(Math.sqrt(areaMs2).toFixed(0), cx, cy);
+      ctx.fillText(precision.toFixed(0), cx, cy);
     }
 
 
@@ -500,7 +498,7 @@
               const v = velocity;
               if (d <= HIST_MAX_MS) {
                 deltas.push(d);
-                if (deltas.length > 72) deltas.shift();
+                if (deltas.length > NOTE_BUFFER) deltas.shift();
                 // lastVelocities.push(v);
                 // if (lastVelocities.length > 72) lastVelocities.shift();
               }
