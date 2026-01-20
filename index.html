@@ -40,7 +40,7 @@
       display: grid;
       grid-template-columns: repeat(5, auto);
       gap: 10px;
-      font-size: 16px;
+      font-size: 12px;
       line-height: 1.35;
     }
 
@@ -129,7 +129,7 @@
     const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
     const HIST_MAX_MS = 500;
-    const HIST_BINS = 150;
+    const HIST_BINS = 60;
 
     const NOTE_BUFFER = 72;
 
@@ -227,7 +227,8 @@
       }
 
       if (bpm > 0) {
-        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "yellow";
         ctx.beginPath();
         ctx.moveTo(tick * c.width, 0.0);
         ctx.lineTo(tick * c.width, c.height);
@@ -311,6 +312,7 @@
       }
 
       { // mean blue
+        ctx.lineWidth = 8;
         ctx.strokeStyle = '#0ff';
         ctx.beginPath();
         ctx.moveTo(bary_left * c.width, 0.0);
@@ -327,6 +329,7 @@
       }
 
       { // bottom axis
+        ctx.lineWidth = 3;
         ctx.strokeStyle = '#fff';
         ctx.beginPath();
         ctx.moveTo(0, c.height);
