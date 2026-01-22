@@ -125,7 +125,7 @@
     const VEL_WINDOW = 16;
     const MAX_INTERVAL_MS = 20000;
 
-    const BAR_NOTES = 18;
+    const BAR_NOTES = 72;
     const NOTE_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 
     const HIST_MAX_MS = 500;
@@ -306,7 +306,8 @@
       }
 
       { // tempos
-        const tempo_right = 60000 / (3 * (bary_left * HIST_MAX_MS / 2 + bary_right * HIST_MAX_MS));
+        const ratio = count_right > 0 ? count_left / count_right : 0.5;
+        const tempo_right = 60000 / (3 * (bary_left * HIST_MAX_MS * ratio + bary_right * HIST_MAX_MS));
         const l_ = document.getElementById('tempo_right');
         l_.textContent =
           bary_right ? tempo_right.toFixed(0) : '— ';
@@ -491,8 +492,9 @@
             if (barTimes.length > BAR_NOTES + 1) barTimes.shift();
 
             if (barTimes.length === BAR_NOTES + 1) {
-              const dt = barTimes[BAR_NOTES] - barTimes[0];
-              bpm = (4 * 60000) / dt;
+              const delta = barTimes[BAR_NOTES] - barTimes[0];
+              const mean = delta / BAR_NOTES;
+              bpm = (4 * 60000) / (18 * mean);
             }
 
             // ---- HISTOGRAM DELTAS ----
