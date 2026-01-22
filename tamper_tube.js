@@ -16,8 +16,6 @@
 
     /* ---------- video handling ---------- */
 
-    let video = null;
-
     function waitForVideo(cb) {
         const id = setInterval(() => {
             const v = document.querySelector("video");
@@ -28,21 +26,16 @@
         }, 200);
     }
 
-    function applySemi(semi) {
-        if (!video) return;
+    function applySemi(video, semi) {
         video.preservesPitch = false;
         video.playbackRate = semitoneToRate(semi);
-    }
-
-    function reset() {
-        applySemi(0);
     }
 
     /* ---------- MIDI mono legato ---------- */
 
     let heldNotes = []; // stack of MIDI notes
 
-    function initMIDI() {
+    function initMIDI(video) {
         if (!navigator.requestMIDIAccess) {
             console.warn("Web MIDI not supported");
             return;
@@ -63,7 +56,7 @@
                         heldNotes.push(note);
 
                         const top = heldNotes[heldNotes.length - 1];
-                        applySemi(top - 60);
+                        applySemi(video, top - 60);
                     }
 
                     // NOTE OFF (or note on with vel 0)
@@ -72,9 +65,9 @@
 
                         if (heldNotes.length > 0) {
                             const top = heldNotes[heldNotes.length - 1];
-                            applySemi(top - 60);
+                            applySemi(video, top - 60);
                         } else {
-                            reset();
+                            applySemi(video, 0);
                         }
                     }
                 };
@@ -85,9 +78,7 @@
     /* ---------- init ---------- */
 
     waitForVideo(v => {
-        video = v;
-        video.preservesPitch = false;
-        initMIDI();
+        initMIDI(v);
         console.log("YT turntable pitch (mono legato) active");
     });
 
