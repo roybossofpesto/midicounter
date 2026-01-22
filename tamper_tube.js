@@ -43,17 +43,27 @@
         font-size: 14px;
         border-radius: 8px;
         z-index: 9999;
-        min-width: 160px;
+        min-width: 180px;
     `;
 
-    const midiToggle = document.createElement("button");
-    midiToggle.textContent = "MIDI: ON";
-    midiToggle.style.marginBottom = "6px";
-    midiToggle.style.width = "100%";
+    // Hold last note checkbox
+    const holdContainer = document.createElement("label");
+    holdContainer.style.display = "block";
+    holdContainer.style.marginBottom = "6px";
+    holdContainer.style.cursor = "pointer";
 
+    const holdCheckbox = document.createElement("input");
+    holdCheckbox.type = "checkbox";
+    holdCheckbox.checked = false;
+    holdCheckbox.style.marginRight = "6px";
+    holdContainer.appendChild(holdCheckbox);
+    holdContainer.appendChild(document.createTextNode("Hold Last Note"));
+
+    // Pitch display
     const pitchLabel = document.createElement("div");
     pitchLabel.textContent = "Pitch: 0 semitones";
 
+    // Slider for manual override
     const pitchSlider = document.createElement("input");
     pitchSlider.type = "range";
     pitchSlider.min = -24;
@@ -62,30 +72,33 @@
     pitchSlider.step = 0.1;
     pitchSlider.style.width = "100%";
 
-    ui.appendChild(midiToggle);
+
+    // // Held notes stack
+    // const heldNotesLabel = document.createElement("div");
+    // heldNotesLabel.textContent = "Held Notes: []";
+
+    ui.appendChild(holdContainer);
     ui.appendChild(pitchLabel);
     ui.appendChild(pitchSlider);
+    // ui.appendChild(heldNotesLabel);
     document.body.appendChild(ui);
 
+    /* ---------- state ---------- */
+    let heldNotes = [];
+    let currentVideo;
     let midiEnabled = true;
-    midiToggle.onclick = () => {
-        midiEnabled = !midiEnabled;
-        midiToggle.textContent = midiEnabled ? "MIDI: ON" : "MIDI: OFF";
-    };
-
-    function uiUpdate(semi) {
-        pitchLabel.textContent = `Pitch: ${semi.toFixed(2)} semitones`;
-        pitchSlider.value = semi;
-    }
 
     pitchSlider.oninput = () => {
         applySemi(currentVideo, parseFloat(pitchSlider.value));
     };
 
-    /* ---------- MIDI mono legato ---------- */
-    let heldNotes = []; // stack of MIDI notes
-    let currentVideo;
+    function uiUpdate(semi) {
+        pitchLabel.textContent = `Pitch: ${semi.toFixed(2)} semitones`;
+        pitchSlider.value = semi;
+        // heldNotesLabel.textContent = `Held Notes: [${heldNotes.join(", ")}]`;
+    }
 
+    /* ---------- MIDI handling ---------- */
     function initMIDI(video) {
         if (!navigator.requestMIDIAccess) {
             console.warn("Web MIDI not supported");
@@ -106,7 +119,6 @@
                     if (type === 0x90 && velocity > 0) {
                         heldNotes = heldNotes.filter(n => n !== note);
                         heldNotes.push(note);
-
                         const top = heldNotes[heldNotes.length - 1];
                         applySemi(video, top - 60);
                     }
@@ -115,11 +127,19 @@
                     if (type === 0x80 || (type === 0x90 && velocity === 0)) {
                         heldNotes = heldNotes.filter(n => n !== note);
 
-                        if (heldNotes.length > 0) {
-                            const top = heldNotes[heldNotes.length - 1];
-                            applySemi(video, top - 60);
+                        if (!holdCheckbox.checked) {
+                            // normal legato behavior
+                            if (heldNotes.length > 0) {
+                                const top = heldNotes[heldNotes.length - 1];
+                                applySemi(video, top - 60);
+                            } else {
+                                applySemi(video, 0);
+                            }
                         } else {
-                            applySemi(video, 0);
+                            // Hold last note: do nothing on note release
+                            if (heldNotes.length === 0) {
+                                applySemi(video, note - 60);
+                            }
                         }
                     }
                 };
